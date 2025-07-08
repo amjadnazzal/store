@@ -1,5 +1,6 @@
 using System;
 using System.Windows.Forms;
+using ClothingStoreManager.Forms;
 
 namespace ClothingStoreManager
 {
@@ -16,7 +17,13 @@ namespace ClothingStoreManager
             // تهيئة قاعدة البيانات
             DatabaseHelper.InitializeDatabase();
             
-            Application.Run(new MainForm());
+            // عرض نافذة تسجيل الدخول أولاً
+            var loginForm = new LoginForm();
+            if (loginForm.ShowDialog() == DialogResult.OK)
+            {
+                // تشغيل النافذة الرئيسية بعد تسجيل الدخول بنجاح
+                Application.Run(new MainForm());
+            }
         }
     }
 }

@@ -94,25 +94,80 @@ namespace ClothingStoreManager
                     FOREIGN KEY (ProductId) REFERENCES Products(Id)
                 )",
 
-                // جدول المرتجعات
+                // جدول المستخدمين
+                @"CREATE TABLE IF NOT EXISTS Users (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Username TEXT UNIQUE NOT NULL,
+                    PasswordHash TEXT NOT NULL,
+                    FullName TEXT NOT NULL,
+                    Email TEXT,
+                    Phone TEXT,
+                    Role INTEGER NOT NULL,
+                    IsActive BOOLEAN DEFAULT 1,
+                    CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    LastLogin DATETIME,
+                    CreatedBy TEXT
+                )",
+
+                // جدول المرتجعات المحدث
                 @"CREATE TABLE IF NOT EXISTS Returns (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ReturnNumber TEXT UNIQUE NOT NULL,
                     InvoiceId INTEGER,
                     ProductId INTEGER,
                     Quantity INTEGER,
+                    UnitPrice DECIMAL(10,2),
+                    TotalAmount DECIMAL(10,2),
                     Reason TEXT,
+                    Type INTEGER DEFAULT 1,
+                    Status INTEGER DEFAULT 1,
+                    ProcessedBy INTEGER,
                     ReturnDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    Notes TEXT,
                     FOREIGN KEY (InvoiceId) REFERENCES Invoices(Id),
-                    FOREIGN KEY (ProductId) REFERENCES Products(Id)
+                    FOREIGN KEY (ProductId) REFERENCES Products(Id),
+                    FOREIGN KEY (ProcessedBy) REFERENCES Users(Id)
                 )",
 
-                // جدول الإعدادات
+                // جدول تقارير النظام
+                @"CREATE TABLE IF NOT EXISTS Reports (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ReportName TEXT NOT NULL,
+                    ReportType TEXT NOT NULL,
+                    GeneratedBy INTEGER,
+                    GeneratedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    Parameters TEXT,
+                    FilePath TEXT,
+                    FOREIGN KEY (GeneratedBy) REFERENCES Users(Id)
+                )",
+
+                // جدول سجل العمليات
+                @"CREATE TABLE IF NOT EXISTS ActivityLog (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    UserId INTEGER,
+                    Action TEXT NOT NULL,
+                    TableName TEXT,
+                    RecordId INTEGER,
+                    OldValues TEXT,
+                    NewValues TEXT,
+                    Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (UserId) REFERENCES Users(Id)
+                )",
+
+                // جدول الإعدادات المحدث
                 @"CREATE TABLE IF NOT EXISTS Settings (
                     Id INTEGER PRIMARY KEY,
                     StoreName TEXT,
                     StoreAddress TEXT,
+                    StorePhone TEXT,
+                    StoreEmail TEXT,
                     WelcomeMessage TEXT,
-                    LowStockAlert INTEGER DEFAULT 5
+                    LowStockAlert INTEGER DEFAULT 5,
+                    TaxRate DECIMAL(5,2) DEFAULT 0,
+                    Currency TEXT DEFAULT 'EGP',
+                    PrinterName TEXT,
+                    AutoPrint BOOLEAN DEFAULT 0,
+                    BackupInterval INTEGER DEFAULT 7
                 )"
             };
 
@@ -126,8 +181,16 @@ namespace ClothingStoreManager
 
             // إدراج الإعدادات الافتراضية إذا لم تكن موجودة
             using (var command = new SQLiteCommand(
-                "INSERT OR IGNORE INTO Settings (Id, StoreName, StoreAddress, WelcomeMessage, LowStockAlert) " +
-                "VALUES (1, 'متجر الملابس', '', 'شكراً لزيارتكم', 5)", connection))
+                "INSERT OR IGNORE INTO Settings (Id, StoreName, StoreAddress, StorePhone, StoreEmail, WelcomeMessage, LowStockAlert, TaxRate, Currency, AutoPrint, BackupInterval) " +
+                "VALUES (1, 'متجر الملابس', '', '', '', 'شكراً لزيارتكم', 5, 0, 'EGP', 0, 7)", connection))
+            {
+                command.ExecuteNonQuery();
+            }
+
+            // إنشاء مستخدم المدير الافتراضي (admin123)
+            using (var command = new SQLiteCommand(
+                "INSERT OR IGNORE INTO Users (Username, PasswordHash, FullName, Role, IsActive, CreatedBy) " +
+                "VALUES ('admin', 'W6ph5Mm5Pz8GgiULbPgzG37mj9g=', 'مدير النظام', 1, 1, 'System')", connection))
             {
                 command.ExecuteNonQuery();
             }
